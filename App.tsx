@@ -261,7 +261,17 @@ const App: React.FC = () => {
                 <div className="space-y-3">
                   <p className="text-blue-400 font-bold underline uppercase">Step 3: Setup Client ID</p>
                   <p>Add this to <b>Authorized JavaScript origins</b> in your OAuth Client settings:</p>
-                  <code className="bg-black/50 p-2 rounded text-blue-300 select-all block break-all">https://abelo-123.github.io</code>
+                  <code className="bg-black/50 p-2 rounded text-blue-300 select-all block break-all">{window.location.origin}</code>
+
+                  <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-2">
+                    <p className="font-black text-[9px] uppercase tracking-widest text-gray-500">System Diagnostics:</p>
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span>API Key Loaded:</span>
+                      <span className={process.env.YOUTUBE_API_KEY ? 'text-green-500' : 'text-red-500 font-bold'}>
+                        {process.env.YOUTUBE_API_KEY ? 'YES (Active)' : 'NO (Check Github Secrets)'}
+                      </span>
+                    </div>
+                  </div>
 
                   <div className="space-y-2 pt-2">
                     <p className="font-black text-white text-[9px] uppercase tracking-widest">Enter Client ID below:</p>
