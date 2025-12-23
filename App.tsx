@@ -235,7 +235,7 @@ const App: React.FC = () => {
                   <p className="text-red-400 font-black mb-1 flex items-center gap-1 uppercase">
                     <ExclamationTriangleIcon className="w-3 h-3" /> Fix "Access Blocked"
                   </p>
-                  <p className="text-[10px] leading-tight">In Google Console, go to <b>OAuth consent screen</b> > <b>Test users</b>. Add your email address there or you will get a 403 error.</p>
+                  <p className="text-[10px] leading-tight">In Google Console, go to <b>OAuth consent screen</b> &gt; <b>Test users</b>. Add your email address there or you will get a 403 error.</p>
                 </div>
               </div>
               <input
