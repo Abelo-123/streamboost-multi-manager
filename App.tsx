@@ -18,7 +18,8 @@ import {
   KeyIcon,
   QuestionMarkCircleIcon,
   ArrowPathRoundedSquareIcon,
-  SignalIcon
+  SignalIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
 const App: React.FC = () => {
@@ -186,7 +187,7 @@ const App: React.FC = () => {
       {/* Sidebar - Account Management */}
       <div className="lg:col-span-4 flex flex-col gap-6 z-10">
         <div className="glass-panel p-6 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden flex flex-col">
-          {/* Decorative Icon - Fixed pointer-events */}
+          {/* Decorative Icon */}
           <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none z-0">
             <UsersIcon className="w-24 h-24 rotate-12" />
           </div>
@@ -202,7 +203,7 @@ const App: React.FC = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => setShowSetup(!showSetup)}
-                className="p-2 text-gray-400 hover:text-white transition-all hover:bg-white/10 rounded-lg cursor-pointer"
+                className={`p-2 transition-all rounded-lg cursor-pointer ${showSetup ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
                 title="Setup Guide"
               >
                 <QuestionMarkCircleIcon className="w-6 h-6" />
@@ -218,17 +219,29 @@ const App: React.FC = () => {
           </div>
 
           {showSetup && (
-            <div className="mb-6 p-5 bg-blue-600/10 border border-blue-500/30 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-4 relative z-10">
+            <div className="mb-6 p-5 bg-blue-600/10 border border-blue-500/30 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-4 relative z-20">
               <div className="flex items-center gap-2 text-blue-400 font-black text-xs uppercase">
-                <KeyIcon className="w-4 h-4" /> Cloud Config
+                <KeyIcon className="w-4 h-4" /> Cloud Config & Verification Fix
               </div>
-              <div className="text-[11px] text-gray-400 space-y-2 leading-relaxed">
-                <p>1. Open <a href="https://console.cloud.google.com/" target="_blank" className="text-blue-400 underline font-bold">Google Cloud</a></p>
-                <p>2. Enable <b>YouTube Data API v3</b></p>
-                <p>3. Create <b>OAuth 2.0 Client ID</b> (Web App)</p>
-                <p>4. <b>CRITICAL:</b> Add this origin to your project: <br />
-                  <code className="bg-black/50 p-1 rounded text-blue-300 select-all">https://abelo-123.github.io</code>
-                </p>
+              <div className="text-[11px] text-gray-400 space-y-3 leading-relaxed">
+                <div>
+                  <p className="text-blue-400 font-bold mb-1 underline uppercase">1. Basic Setup</p>
+                  <p>Enable <b>YouTube Data API v3</b> in Google Console.</p>
+                  <p>Create <b>OAuth Client ID</b> (Web App).</p>
+                </div>
+                <div>
+                  <p className="text-yellow-400 font-bold mb-1 underline uppercase flex items-center gap-1">
+                    <ExclamationTriangleIcon className="w-3 h-3" /> 2. FIX: Access Blocked Error
+                  </p>
+                  <p>Go to <b>OAuth consent screen</b> tab in Console.</p>
+                  <p>Scroll to <b>Test users</b> section.</p>
+                  <p>Click <b>+ ADD USERS</b> and enter the email address you want to log in with. <b>THIS IS REQUIRED!</b></p>
+                </div>
+                <div>
+                  <p className="text-blue-400 font-bold mb-1 underline uppercase">3. Origin</p>
+                  <p>Add this to <b>Authorized JavaScript origins</b>:</p>
+                  <code className="bg-black/50 p-1 rounded text-blue-300 select-all block mt-1">https://abelo-123.github.io</code>
+                </div>
               </div>
               <input
                 type="password"
@@ -352,7 +365,7 @@ const App: React.FC = () => {
       {/* Main Control Panel */}
       <div className="lg:col-span-8 flex flex-col gap-8 z-10">
         <div className="glass-panel p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
-          {/* Decorative Bar - Fixed pointer-events */}
+          {/* Decorative Bar */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent pointer-events-none z-0"></div>
 
           <div className="flex items-center gap-4 mb-10 relative z-10">
@@ -469,7 +482,7 @@ const App: React.FC = () => {
         {/* AI Insight Sub-Panel */}
         {streamInfo && (
           <div className="glass-panel p-8 rounded-[2rem] relative overflow-hidden group border border-white/5 shadow-2xl z-10">
-            {/* Blur Decoration - Pointer events fixed */}
+            {/* Blur Decoration */}
             <div className="absolute top-0 right-0 w-80 h-80 bg-purple-600/5 blur-[120px] pointer-events-none z-0 group-hover:bg-purple-600/10 transition-colors"></div>
 
             <div className="flex items-center justify-between mb-8 relative z-10">
