@@ -20,7 +20,9 @@ import {
   ArrowPathRoundedSquareIcon,
   SignalIcon,
   ExclamationTriangleIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  LinkIcon,
+  RocketLaunchIcon
 } from '@heroicons/react/24/outline';
 
 const App: React.FC = () => {
@@ -137,7 +139,11 @@ const App: React.FC = () => {
       const analysis = await gemini.analyzeStream(info.title, info.channelTitle);
       setAiAnalysis(analysis);
     } catch (error: any) {
-      alert("Fetch Error: " + error.message);
+      if (error.message.includes('disabled') || error.message.includes('not been used')) {
+        alert("CRITICAL ERROR: YouTube API is not enabled. Please open the Setup Guide (?) and follow Step 1.");
+      } else {
+        alert("Fetch Error: " + error.message);
+      }
     } finally {
       setIsLoadingStream(false);
     }
@@ -221,35 +227,59 @@ const App: React.FC = () => {
           </div>
 
           {showSetup && (
-            <div className="mb-6 p-5 bg-blue-600/10 border border-blue-500/30 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-4 relative z-20 shadow-2xl backdrop-blur-md">
-              <div className="flex items-center gap-2 text-blue-400 font-black text-xs uppercase">
-                <KeyIcon className="w-4 h-4" /> OAuth Configuration
+            <div className="mb-6 p-5 bg-[#1a1a1a] border border-blue-500/30 rounded-2xl space-y-5 animate-in fade-in slide-in-from-top-4 relative z-30 shadow-2xl backdrop-blur-xl max-h-[80vh] overflow-y-auto custom-scrollbar">
+              <div className="flex items-center gap-2 text-blue-400 font-black text-xs uppercase sticky top-0 bg-[#1a1a1a] py-2 z-10">
+                <RocketLaunchIcon className="w-4 h-4" /> Required Configuration (3 Steps)
               </div>
-              <div className="text-[11px] text-gray-400 space-y-3 leading-relaxed">
-                <div>
-                  <p className="text-blue-400 font-bold mb-1 underline uppercase">1. Origin</p>
-                  <p>Add this to <b>Authorized JavaScript origins</b>:</p>
-                  <code className="bg-black/50 p-1 rounded text-blue-300 select-all block mt-1 break-all">https://abelo-123.github.io</code>
-                </div>
+
+              <div className="text-[11px] text-gray-400 space-y-4 leading-relaxed">
+                {/* Step 1: Enable API */}
                 <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
-                  <p className="text-red-400 font-black mb-1 flex items-center gap-1 uppercase">
-                    <ExclamationTriangleIcon className="w-3 h-3" /> Fix "Access Blocked"
+                  <p className="text-red-400 font-black mb-2 flex items-center gap-1 uppercase">
+                    <ExclamationTriangleIcon className="w-3 h-3" /> Step 1: Enable API
                   </p>
-                  <p className="text-[10px] leading-tight">In Google Console, go to <b>OAuth consent screen</b> &gt; <b>Test users</b>. Add your email address there or you will get a 403 error.</p>
+                  <p className="mb-2">You must enable the <b>YouTube Data API v3</b> in your project or tracking will fail.</p>
+                  <a
+                    href="https://console.cloud.google.com/apis/library/youtube.googleapis.com"
+                    target="_blank"
+                    className="inline-flex items-center gap-1.5 bg-red-600 text-white px-3 py-1.5 rounded-lg font-black uppercase text-[9px] hover:bg-red-500 transition-colors"
+                  >
+                    <LinkIcon className="w-3 h-3" /> Enable API Now
+                  </a>
+                </div>
+
+                {/* Step 2: Test User */}
+                <div className="p-3 bg-yellow-500/10 rounded-xl border border-yellow-500/20">
+                  <p className="text-yellow-400 font-black mb-1 flex items-center gap-1 uppercase">
+                    <ShieldCheckIcon className="w-3 h-3" /> Step 2: Add Test User
+                  </p>
+                  <p>In <b>OAuth consent screen</b> > <b>Test users</b>, click <b>+ ADD USERS</b> and enter: <code className="bg-black/40 px-1 rounded text-white">abeloabate01@gmail.com</code></p>
+                </div>
+
+                {/* Step 3: Origin & Client ID */}
+                <div className="space-y-3">
+                  <p className="text-blue-400 font-bold underline uppercase">Step 3: Setup Client ID</p>
+                  <p>Add this to <b>Authorized JavaScript origins</b> in your OAuth Client settings:</p>
+                  <code className="bg-black/50 p-2 rounded text-blue-300 select-all block break-all">https://abelo-123.github.io</code>
+
+                  <div className="space-y-2 pt-2">
+                    <p className="font-black text-white text-[9px] uppercase tracking-widest">Enter Client ID below:</p>
+                    <input
+                      type="password"
+                      placeholder="e.g. 12345-abcde.apps.googleusercontent.com"
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-white font-mono"
+                      value={clientId}
+                      onChange={e => setClientId(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
-              <input
-                type="password"
-                placeholder="Paste Client ID..."
-                className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-white"
-                value={clientId}
-                onChange={e => setClientId(e.target.value)}
-              />
+
               <button
                 onClick={() => setShowSetup(false)}
                 className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98] cursor-pointer"
               >
-                Save Settings
+                Save & Close Guide
               </button>
             </div>
           )}
@@ -262,7 +292,7 @@ const App: React.FC = () => {
                   className="w-full bg-white text-black py-4 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-3 hover:bg-gray-200 transition-all active:scale-95 shadow-xl cursor-pointer"
                 >
                   <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-5 h-5" alt="" />
-                  Sign In with Google
+                  Authorize with Google
                 </button>
 
                 <button
@@ -270,23 +300,22 @@ const App: React.FC = () => {
                   className="w-full text-center text-[10px] text-gray-500 font-bold hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1"
                 >
                   <InformationCircleIcon className="w-3 h-3" />
-                  Stuck at "Access Blocked" screen?
+                  Stuck? View Fix Guide
                 </button>
 
                 {showAuthHelp && (
-                  <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2">
-                    <p className="text-[10px] text-yellow-500 font-black uppercase flex items-center gap-1">
-                      <ShieldCheckIcon className="w-3 h-3" /> Verification Bypass
+                  <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2">
+                    <p className="text-[10px] text-red-500 font-black uppercase flex items-center gap-1">
+                      <ExclamationTriangleIcon className="w-3 h-3" /> Troubleshooting 403
                     </p>
                     <p className="text-[9px] text-gray-400 leading-normal">
-                      Google blocks "Unverified" apps by default. You MUST add your email manually in the Cloud Console:
+                      If you get an "Access Blocked" or "API Disabled" error:
                     </p>
-                    <ul className="text-[9px] text-gray-300 list-disc list-inside space-y-1">
-                      <li>Open <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" className="underline text-yellow-500">OAuth Consent Screen</a></li>
-                      <li>Scroll down to <b>Test users</b></li>
-                      <li>Click <b>+ ADD USERS</b></li>
-                      <li>Enter: <code className="bg-black/40 px-1 rounded">abeloabate01@gmail.com</code></li>
-                    </ul>
+                    <ol className="text-[9px] text-gray-300 list-decimal list-inside space-y-1">
+                      <li>Enable YouTube API in Cloud Console.</li>
+                      <li>Add your email to "Test Users".</li>
+                      <li>Check the blue guide (?) for links.</li>
+                    </ol>
                   </div>
                 )}
               </div>
@@ -401,8 +430,8 @@ const App: React.FC = () => {
               <VideoCameraIcon className="w-8 h-8 text-red-500" />
             </div>
             <div>
-              <h1 className="text-3xl font-black uppercase tracking-tighter leading-none">Command Center</h1>
-              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Tactical Interface v2.5</p>
+              <h1 className="text-3xl font-black uppercase tracking-tighter leading-none text-white">Command Center</h1>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Tactical Interface v2.6</p>
             </div>
           </div>
 
