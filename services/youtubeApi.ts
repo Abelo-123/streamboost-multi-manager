@@ -8,12 +8,16 @@ export const extractVideoId = (url: string): string | null => {
 };
 
 export const fetchStreamInfo = async (videoId: string, apiKey: string): Promise<StreamInfo> => {
-  // We use the basic snippet for info
   const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${apiKey}`);
-  const data = await response.json();
 
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error?.message || 'Failed to fetch video info');
+  }
+
+  const data = await response.json();
   if (!data.items || data.items.length === 0) {
-    throw new Error('Video not found');
+    throw new Error('Video not found or is private');
   }
 
   const item = data.items[0];
@@ -21,7 +25,7 @@ export const fetchStreamInfo = async (videoId: string, apiKey: string): Promise<
     videoId: item.id,
     title: item.snippet.title,
     channelTitle: item.snippet.channelTitle,
-    thumbnail: item.snippet.thumbnails.high.url,
+    thumbnail: item.snippet.thumbnails.maxres?.url || item.snippet.thumbnails.high.url,
     isLive: !!item.liveStreamingDetails
   };
 };
@@ -37,6 +41,11 @@ export const rateVideo = async (videoId: string, accessToken: string, rating: 'l
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.error.message || 'Failed to rate video');
+    const status = response.status;
+
+    if (status === 401) throw new Error('TOKEN_EXPIRED');
+    if (status === 403) throw new Error('PERMISSION_DENIED: ' + (errorData.error?.message || 'Check scopes'));
+
+    throw new Error(errorData.error?.message || `Error ${status}`);
   }
 };
