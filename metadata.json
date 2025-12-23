@@ -1,0 +1,8 @@
+{
+  "name": "StreamBoost Multi-Manager",
+  "description": "A professional dashboard to manage multiple Google accounts and interact with YouTube live streams simultaneously, featuring AI-powered stream analysis.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

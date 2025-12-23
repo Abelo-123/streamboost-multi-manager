@@ -1,0 +1,42 @@
+
+import { StreamInfo } from '../types';
+
+export const extractVideoId = (url: string): string | null => {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
+export const fetchStreamInfo = async (videoId: string, apiKey: string): Promise<StreamInfo> => {
+  // We use the basic snippet for info
+  const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${apiKey}`);
+  const data = await response.json();
+
+  if (!data.items || data.items.length === 0) {
+    throw new Error('Video not found');
+  }
+
+  const item = data.items[0];
+  return {
+    videoId: item.id,
+    title: item.snippet.title,
+    channelTitle: item.snippet.channelTitle,
+    thumbnail: item.snippet.thumbnails.high.url,
+    isLive: !!item.liveStreamingDetails
+  };
+};
+
+export const rateVideo = async (videoId: string, accessToken: string, rating: 'like' | 'dislike' | 'none'): Promise<void> => {
+  const response = await fetch(`https://www.googleapis.com/youtube/v3/videos/rate?id=${videoId}&rating=${rating}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error.message || 'Failed to rate video');
+  }
+};
