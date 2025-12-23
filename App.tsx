@@ -134,15 +134,18 @@ const App: React.FC = () => {
     setAiAnalysis(null);
 
     try {
-      const info = await youtube.fetchStreamInfo(videoId, process.env.API_KEY || '');
+      const info = await youtube.fetchStreamInfo(videoId, process.env.YOUTUBE_API_KEY || '');
       setStreamInfo(info);
       const analysis = await gemini.analyzeStream(info.title, info.channelTitle);
       setAiAnalysis(analysis);
     } catch (error: any) {
-      if (error.message.includes('disabled') || error.message.includes('not been used')) {
-        alert("CRITICAL ERROR: YouTube API is not enabled. Please open the Setup Guide (?) and follow Step 1.");
+      const msg = error.message || '';
+      if (msg.includes('disabled') || msg.includes('not been used')) {
+        alert("CRITICAL ERROR: YouTube API is not enabled in your Google Cloud Project.\n\nDetails: " + msg);
+      } else if (msg.includes('API key not found') || msg.includes('key is invalid')) {
+        alert("AUTH ERROR: Invalid or missing API Key.\n\nDetails: " + msg);
       } else {
-        alert("Fetch Error: " + error.message);
+        alert("Fetch Error: " + msg);
       }
     } finally {
       setIsLoadingStream(false);
