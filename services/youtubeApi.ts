@@ -12,6 +12,7 @@ export const fetchStreamInfo = async (videoId: string, apiKey: string): Promise<
 
   if (!response.ok) {
     const errorData = await response.json();
+    console.error('YouTube API Error:', errorData);
     throw new Error(errorData.error?.message || 'Failed to fetch video info');
   }
 
