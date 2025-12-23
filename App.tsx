@@ -26,7 +26,15 @@ import {
 } from '@heroicons/react/24/outline';
 
 const App: React.FC = () => {
-  const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
+  const [accounts, setAccounts] = useState<GoogleAccount[]>(() => {
+    const saved = localStorage.getItem('sb_accounts');
+    if (saved) {
+      try {
+        return JSON.parse(saved).map((a: any) => ({ ...a, lastActionStatus: 'idle' }));
+      } catch (e) { return []; }
+    }
+    return [];
+  });
   const [streamUrl, setStreamUrl] = useState('');
   const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null);
   const [isLiking, setIsLiking] = useState(false);
@@ -41,16 +49,6 @@ const App: React.FC = () => {
   const [progress, setProgress] = useState({ current: 0, total: 0, activeName: '' });
 
   // Persistence
-  useEffect(() => {
-    const saved = localStorage.getItem('sb_accounts');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setAccounts(parsed.map((a: any) => ({ ...a, lastActionStatus: 'idle' })));
-      } catch (e) { console.error("Load failed", e); }
-    }
-  }, []);
-
   useEffect(() => {
     localStorage.setItem('sb_accounts', JSON.stringify(accounts));
     localStorage.setItem('sb_client_id', clientId);
