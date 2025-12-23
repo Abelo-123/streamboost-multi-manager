@@ -129,7 +129,6 @@ const App: React.FC = () => {
     setAiAnalysis(null);
 
     try {
-      // Note: We use process.env.API_KEY for Gemini/Fetch purposes
       const info = await youtube.fetchStreamInfo(videoId, process.env.API_KEY || '');
       setStreamInfo(info);
       const analysis = await gemini.analyzeStream(info.title, info.channelTitle);
@@ -183,15 +182,16 @@ const App: React.FC = () => {
   }, [accounts]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-screen text-gray-100">
+    <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-screen text-gray-100 relative">
       {/* Sidebar - Account Management */}
-      <div className="lg:col-span-4 flex flex-col gap-6">
-        <div className="glass-panel p-6 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
+      <div className="lg:col-span-4 flex flex-col gap-6 z-10">
+        <div className="glass-panel p-6 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden flex flex-col">
+          {/* Decorative Icon - Fixed pointer-events */}
+          <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none z-0">
             <UsersIcon className="w-24 h-24 rotate-12" />
           </div>
 
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-8 relative z-10">
             <div>
               <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
                 <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
@@ -200,17 +200,25 @@ const App: React.FC = () => {
               <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Active Units: {stats.online}/{stats.total}</p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowSetup(!showSetup)} className="p-2 text-gray-400 hover:text-white transition-all hover:bg-white/5 rounded-lg">
+              <button
+                onClick={() => setShowSetup(!showSetup)}
+                className="p-2 text-gray-400 hover:text-white transition-all hover:bg-white/10 rounded-lg cursor-pointer"
+                title="Setup Guide"
+              >
                 <QuestionMarkCircleIcon className="w-6 h-6" />
               </button>
-              <button onClick={() => setShowAddForm(!showAddForm)} className="bg-red-600 p-2.5 rounded-xl hover:bg-red-500 shadow-lg shadow-red-600/20 transition-all active:scale-95">
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="bg-red-600 p-2.5 rounded-xl hover:bg-red-500 shadow-lg shadow-red-600/20 transition-all active:scale-90 cursor-pointer"
+                title="Add Account"
+              >
                 <PlusIcon className="w-5 h-5" />
               </button>
             </div>
           </div>
 
           {showSetup && (
-            <div className="mb-6 p-5 bg-blue-600/10 border border-blue-500/30 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-4">
+            <div className="mb-6 p-5 bg-blue-600/10 border border-blue-500/30 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-4 relative z-10">
               <div className="flex items-center gap-2 text-blue-400 font-black text-xs uppercase">
                 <KeyIcon className="w-4 h-4" /> Cloud Config
               </div>
@@ -229,18 +237,21 @@ const App: React.FC = () => {
                 value={clientId}
                 onChange={e => setClientId(e.target.value)}
               />
-              <button onClick={() => setShowSetup(false)} className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg shadow-blue-600/20">
+              <button
+                onClick={() => setShowSetup(false)}
+                className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98] cursor-pointer"
+              >
                 Update Configuration
               </button>
             </div>
           )}
 
           {showAddForm && (
-            <div className="mb-6 p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4 animate-in zoom-in-95">
+            <div className="mb-6 p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4 animate-in zoom-in-95 relative z-10">
               <p className="text-[11px] text-gray-400 text-center leading-tight">Add a real account via secure OAuth popup.</p>
               <button
                 onClick={() => startOAuthFlow()}
-                className="w-full bg-white text-black py-4 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-3 hover:bg-gray-200 transition-all active:scale-95 shadow-xl"
+                className="w-full bg-white text-black py-4 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-3 hover:bg-gray-200 transition-all active:scale-95 shadow-xl cursor-pointer"
               >
                 <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-5 h-5" alt="" />
                 Authorize Account
@@ -262,16 +273,16 @@ const App: React.FC = () => {
                   }]);
                   setShowAddForm(false);
                 }}
-                className="w-full border border-white/10 py-3 rounded-xl text-[10px] font-bold text-gray-500 hover:bg-white/5 uppercase tracking-widest transition-all"
+                className="w-full border border-white/10 py-3 rounded-xl text-[10px] font-bold text-gray-500 hover:bg-white/5 uppercase tracking-widest transition-all cursor-pointer"
               >
                 Add Test Unit
               </button>
             </div>
           )}
 
-          <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar relative z-10">
             {accounts.length === 0 ? (
-              <div className="text-center py-16 opacity-20">
+              <div className="text-center py-16 opacity-20 pointer-events-none">
                 <UsersIcon className="w-12 h-12 mx-auto mb-4" />
                 <p className="text-xs font-bold uppercase tracking-widest">No Units Deployed</p>
               </div>
@@ -295,7 +306,7 @@ const App: React.FC = () => {
                     {acc.lastActionStatus === 'error' && (
                       <button
                         onClick={() => startOAuthFlow(acc.id)}
-                        className="p-1 text-red-400 hover:text-white bg-red-400/10 rounded-lg transition-all"
+                        className="p-1.5 text-red-400 hover:text-white bg-red-400/10 rounded-lg transition-all active:scale-90 cursor-pointer"
                         title="Re-authorize"
                       >
                         <ArrowPathRoundedSquareIcon className="w-5 h-5" />
@@ -303,7 +314,8 @@ const App: React.FC = () => {
                     )}
                     <button
                       onClick={() => setAccounts(accounts.filter(a => a.id !== acc.id))}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-600 hover:text-red-500 transition-all"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-600 hover:text-red-500 transition-all active:scale-90 cursor-pointer"
+                      title="Remove Account"
                     >
                       <TrashIcon className="w-4 h-4" />
                     </button>
@@ -315,7 +327,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Activity Feed */}
-        <div className="glass-panel p-6 rounded-3xl flex-1 max-h-[350px] flex flex-col border border-white/5">
+        <div className="glass-panel p-6 rounded-3xl flex-1 max-h-[350px] flex flex-col border border-white/5 relative z-10">
           <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-4 text-gray-500 flex items-center gap-2">
             <SignalIcon className="w-4 h-4" /> Telemetry Log
           </h3>
@@ -324,7 +336,7 @@ const App: React.FC = () => {
               <p className="text-gray-700 italic">No incoming data...</p>
             ) : (
               logs.map(log => (
-                <div key={log.id} className={`p-2 rounded border-l-2 flex flex-col gap-1 ${log.status === 'success' ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'}`}>
+                <div key={log.id} className={`p-2 rounded border-l-2 flex flex-col gap-1 transition-all hover:translate-x-1 ${log.status === 'success' ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'}`}>
                   <div className="flex justify-between items-center opacity-60">
                     <span className="font-black">[{log.accountName.toUpperCase()}]</span>
                     <span>{log.timestamp.toLocaleTimeString()}</span>
@@ -338,11 +350,12 @@ const App: React.FC = () => {
       </div>
 
       {/* Main Control Panel */}
-      <div className="lg:col-span-8 flex flex-col gap-8">
+      <div className="lg:col-span-8 flex flex-col gap-8 z-10">
         <div className="glass-panel p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent"></div>
+          {/* Decorative Bar - Fixed pointer-events */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent pointer-events-none z-0"></div>
 
-          <div className="flex items-center gap-4 mb-10">
+          <div className="flex items-center gap-4 mb-10 relative z-10">
             <div className="bg-red-600/20 p-4 rounded-3xl border border-red-600/30 shadow-2xl shadow-red-600/10">
               <VideoCameraIcon className="w-8 h-8 text-red-500" />
             </div>
@@ -352,7 +365,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4 mb-10">
+          <div className="flex flex-col md:flex-row gap-4 mb-10 relative z-10">
             <div className="relative flex-1 group">
               <input
                 type="text"
@@ -365,7 +378,7 @@ const App: React.FC = () => {
               {streamUrl && (
                 <button
                   onClick={() => setStreamUrl('')}
-                  className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                  className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors cursor-pointer"
                 >
                   <XMarkIcon className="w-5 h-5" />
                 </button>
@@ -374,19 +387,19 @@ const App: React.FC = () => {
             <button
               onClick={handleFetchStream}
               disabled={isLoadingStream || !streamUrl}
-              className="bg-white text-black px-10 py-5 rounded-2xl font-black uppercase text-sm hover:bg-gray-200 transition-all active:scale-95 disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3 shadow-xl"
+              className="bg-white text-black px-10 py-5 rounded-2xl font-black uppercase text-sm hover:bg-gray-200 transition-all active:scale-95 disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3 shadow-xl cursor-pointer"
             >
               {isLoadingStream ? <ArrowPathIcon className="w-6 h-6 animate-spin" /> : 'Lock Target'}
             </button>
           </div>
 
           {streamInfo ? (
-            <div className="grid md:grid-cols-12 gap-10 items-start animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="grid md:grid-cols-12 gap-10 items-start animate-in fade-in slide-in-from-bottom-8 duration-700 relative z-10">
               <div className="md:col-span-7 space-y-6">
                 <div className="relative group overflow-hidden rounded-[2rem] border border-white/10 shadow-inner">
                   <img src={streamInfo.thumbnail} className="w-full h-full object-cover aspect-video transition-transform duration-700 group-hover:scale-105" alt="" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
-                  <div className="absolute bottom-6 left-6 right-6">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60 pointer-events-none"></div>
+                  <div className="absolute bottom-6 left-6 right-6 pointer-events-none">
                     <div className="inline-flex items-center gap-2 bg-red-600 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest mb-3 shadow-lg shadow-red-600/40">
                       <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
                       ACTIVE FEED
@@ -401,13 +414,13 @@ const App: React.FC = () => {
               </div>
 
               <div className="md:col-span-5 flex flex-col gap-6">
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-8 flex-1 shadow-2xl backdrop-blur-3xl">
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-8 flex-1 shadow-2xl backdrop-blur-3xl relative overflow-hidden">
                   <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-8 text-center">Execution Control</h4>
 
                   <button
                     onClick={handleMultiLike}
                     disabled={isLiking || accounts.length === 0}
-                    className="w-full stream-gradient text-white py-6 rounded-[1.5rem] font-black uppercase text-sm shadow-2xl shadow-red-600/30 hover:shadow-red-600/60 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20 disabled:scale-100 disabled:shadow-none group relative overflow-hidden"
+                    className="w-full stream-gradient text-white py-6 rounded-[1.5rem] font-black uppercase text-sm shadow-2xl shadow-red-600/30 hover:shadow-red-600/60 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20 disabled:scale-100 disabled:shadow-none group relative overflow-hidden cursor-pointer"
                   >
                     <div className="relative z-10 flex flex-col items-center gap-2">
                       {isLiking ? <ArrowPathIcon className="w-7 h-7 animate-spin" /> : <HandThumbUpIcon className="w-8 h-8 mb-1 group-hover:scale-125 transition-transform" />}
@@ -445,7 +458,7 @@ const App: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-24 opacity-20 text-center">
+            <div className="flex flex-col items-center justify-center py-24 opacity-20 text-center relative z-10 pointer-events-none">
               <VideoCameraIcon className="w-24 h-24 mb-6" />
               <h2 className="text-3xl font-black uppercase tracking-tighter italic">Target Missing</h2>
               <p className="max-w-xs mt-4 text-xs font-bold uppercase tracking-widest leading-loose">Enter a live stream URL to initialize the synchronization matrix.</p>
@@ -455,9 +468,11 @@ const App: React.FC = () => {
 
         {/* AI Insight Sub-Panel */}
         {streamInfo && (
-          <div className="glass-panel p-8 rounded-[2rem] relative overflow-hidden group border border-white/5 shadow-2xl">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-purple-600/5 blur-[120px] pointer-events-none group-hover:bg-purple-600/10 transition-colors"></div>
-            <div className="flex items-center justify-between mb-8">
+          <div className="glass-panel p-8 rounded-[2rem] relative overflow-hidden group border border-white/5 shadow-2xl z-10">
+            {/* Blur Decoration - Pointer events fixed */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-purple-600/5 blur-[120px] pointer-events-none z-0 group-hover:bg-purple-600/10 transition-colors"></div>
+
+            <div className="flex items-center justify-between mb-8 relative z-10">
               <div className="flex items-center gap-3 text-purple-400">
                 <SparklesIcon className="w-7 h-7" />
                 <h2 className="text-xl font-black uppercase tracking-tighter">AI Tactical Overlay</h2>
@@ -468,7 +483,7 @@ const App: React.FC = () => {
             </div>
 
             {aiAnalysis ? (
-              <div className="grid md:grid-cols-3 gap-8 items-center">
+              <div className="grid md:grid-cols-3 gap-8 items-center relative z-10">
                 <div className="md:col-span-2 p-6 bg-white/[0.03] border border-white/5 rounded-[1.5rem] relative">
                   <div className="absolute -top-3 left-6 bg-[#0f0f0f] px-3 text-[10px] font-black text-purple-500 tracking-[0.2em] uppercase">Intelligence Summary</div>
                   <p className="text-sm text-gray-300 leading-relaxed font-medium italic">
@@ -476,13 +491,13 @@ const App: React.FC = () => {
                   </p>
                 </div>
                 <div className="space-y-4">
-                  <div className="p-5 bg-white/[0.03] border border-white/5 rounded-2xl">
+                  <div className="p-5 bg-white/[0.03] border border-white/5 rounded-2xl transition-all hover:bg-white/[0.05]">
                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Threat/Engagement Level</p>
                     <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                       <div className="h-full bg-green-500 w-[92%] shadow-[0_0_15px_rgba(34,197,94,0.3)]"></div>
                     </div>
                   </div>
-                  <div className="p-5 bg-white/[0.03] border border-white/5 rounded-2xl">
+                  <div className="p-5 bg-white/[0.03] border border-white/5 rounded-2xl transition-all hover:bg-white/[0.05]">
                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Tactical Opportunity</p>
                     <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                       <div className="h-full bg-blue-500 w-[78%] shadow-[0_0_15px_rgba(59,130,246,0.3)]"></div>
@@ -491,7 +506,7 @@ const App: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12 gap-4 text-gray-500">
+              <div className="flex flex-col items-center justify-center py-12 gap-4 text-gray-500 relative z-10">
                 <ArrowPathIcon className="w-10 h-10 animate-spin opacity-10" />
                 <p className="text-xs font-black uppercase tracking-[0.3em] animate-pulse">Scanning Metadata Streams...</p>
               </div>
