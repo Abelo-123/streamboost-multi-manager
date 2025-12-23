@@ -253,7 +253,7 @@ const App: React.FC = () => {
                   <p className="text-yellow-400 font-black mb-1 flex items-center gap-1 uppercase">
                     <ShieldCheckIcon className="w-3 h-3" /> Step 2: Add Test User
                   </p>
-                  <p>In <b>OAuth consent screen</b> > <b>Test users</b>, click <b>+ ADD USERS</b> and enter: <code className="bg-black/40 px-1 rounded text-white">abeloabate01@gmail.com</code></p>
+                  <p>In <b>OAuth consent screen</b> &gt; <b>Test users</b>, click <b>+ ADD USERS</b> and enter: <code className="bg-black/40 px-1 rounded text-white">abeloabate01@gmail.com</code></p>
                 </div>
 
                 {/* Step 3: Origin & Client ID */}
