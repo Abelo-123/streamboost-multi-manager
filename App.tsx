@@ -52,6 +52,9 @@ const App: React.FC = () => {
   const [isCommenting, setIsCommenting] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
   const [useAiVariations, setUseAiVariations] = useState(true);
+  const [discussionTopic, setDiscussionTopic] = useState('');
+  const [sectionsPerAccount, setSectionsPerAccount] = useState(2);
+  const [isDeepEngaging, setIsDeepEngaging] = useState(false);
   const [customComment, setCustomComment] = useState('');
 
   // Live Chat Polling (To show who is engaging)
@@ -310,6 +313,54 @@ const App: React.FC = () => {
 
     setAccounts(prev => prev.map(a => ({ ...a, isWatching: false })));
     addLog('System', 'success', 'ULTRA OPERATION COMPLETE. Engagement levels maximized.');
+  };
+
+  const handleDeepEngagement = async () => {
+    if (!streamInfo?.liveChatId || accounts.length === 0 || !discussionTopic) return;
+
+    setIsDeepEngaging(true);
+    const totalSections = accounts.length * sectionsPerAccount;
+    setProgress({ current: 0, total: totalSections, activeName: 'AI Scripting Discussion...' });
+
+    try {
+      // 1. Generate the Full Script
+      const scriptParts = await gemini.generateDeepDiscussion(discussionTopic, totalSections);
+      addLog('System', 'success', `Script Generated: ${scriptParts.length} segments ready.`);
+
+      // 2. Distribute and Post (Sequential loop)
+      // Account 1 posts part 1, Account 2 posts part 2... then Account 1 posts part N+1
+      for (let s = 0; s < totalSections; s++) {
+        const accountIndex = s % accounts.length;
+        const acc = { ...accounts[accountIndex] };
+        const currentPart = scriptParts[s];
+
+        acc.lastActionStatus = 'loading';
+        setAccounts(prev => prev.map(a => a.id === acc.id ? acc : a));
+        setProgress({ current: s + 1, total: totalSections, activeName: `Activating ${acc.name} (Part ${s + 1})...` });
+
+        try {
+          if (acc.accessToken !== 'mock_token') {
+            await youtube.visitWatchPage(streamInfo.videoId, acc.accessToken);
+            // Natural human delay between parts (7-12s)
+            await new Promise(r => setTimeout(r, Math.floor(Math.random() * 5000) + 7000));
+            await youtube.insertChatMessage(streamInfo.liveChatId!, acc.accessToken, currentPart);
+          }
+          acc.lastActionStatus = 'success';
+          addLog(acc.name, 'success', `Posted: ${currentPart.substring(0, 15)}...`);
+        } catch (err: any) {
+          acc.lastActionStatus = 'error';
+          addLog(acc.name, 'error', `Post fail: ${err.message}`);
+        }
+
+        setAccounts(prev => prev.map(a => a.id === acc.id ? acc : a));
+      }
+    } catch (e: any) {
+      alert("Discussion generation failed: " + e.message);
+    } finally {
+      setIsDeepEngaging(false);
+      setDiscussionTopic('');
+      setProgress(prev => ({ ...prev, activeName: 'Discussion Protocol Complete' }));
+    }
   };
 
   const handleMultiComment = async (msg?: string) => {
@@ -754,33 +805,49 @@ const App: React.FC = () => {
                 <div className="bg-white/5 border border-white/10 rounded-3xl p-8 flex-1 shadow-2xl backdrop-blur-3xl relative overflow-hidden">
                   <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-8 text-center">Payload Distribution</h4>
 
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <button
-                      onClick={handleMultiLike}
-                      disabled={isLiking || isViewing || accounts.length === 0}
-                      className="stream-gradient text-white py-6 rounded-[1.5rem] font-black uppercase text-xs shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20 flex flex-col items-center gap-2 cursor-pointer"
-                    >
-                      {isLiking ? <ArrowPathIcon className="w-6 h-6 animate-spin" /> : <HandThumbUpIcon className="w-6 h-6" />}
-                      <span>High-Stay Like</span>
-                    </button>
-                    <button
-                      onClick={handleMultiView}
-                      disabled={isViewing || isLiking || accounts.length === 0}
-                      className="bg-blue-600 text-white py-6 rounded-[1.5rem] font-black uppercase text-xs shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20 flex flex-col items-center gap-2 cursor-pointer shadow-blue-600/20"
-                    >
-                      {isViewing ? <ArrowPathIcon className="w-6 h-6 animate-spin" /> : <VideoCameraIcon className="w-6 h-6" />}
-                      <span>Ultra Sync-View</span>
-                    </button>
-                  </div>
+                  <div className="space-y-6">
+                    <div className="relative group">
+                      <div className="absolute -top-3 left-4 bg-[#0f0f0f] px-2 text-[9px] font-black text-purple-400 uppercase tracking-widest z-10">AI Discussion Topic</div>
+                      <textarea
+                        placeholder="e.g. Discuss the future of AI in coding and why it will benefit humanity..."
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-purple-500/40 transition-all text-sm placeholder:text-gray-700 font-medium text-white resize-none"
+                        value={discussionTopic}
+                        onChange={(e) => setDiscussionTopic(e.target.value)}
+                      />
+                    </div>
 
-                  <button
-                    onClick={handleUltraEngagement}
-                    disabled={isLiking || isViewing || isCommenting || accounts.length === 0}
-                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-2xl hover:shadow-indigo-500/50 transition-all active:scale-95 flex items-center justify-center gap-3 cursor-pointer group mb-4"
-                  >
-                    <RocketLaunchIcon className="w-6 h-6 group-hover:animate-bounce" />
-                    EXECUTE TACTICAL ULTRA OPERATION
-                  </button>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Depth (Parts per unit)</label>
+                        <div className="flex gap-2">
+                          {[1, 2, 3, 5].map(n => (
+                            <button
+                              key={n}
+                              onClick={() => setSectionsPerAccount(n)}
+                              className={`flex-1 py-2 rounded-xl text-[10px] font-black border transition-all ${sectionsPerAccount === n ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-600/30' : 'bg-white/5 border-white/10 text-gray-500 hover:text-white'}`}
+                            >
+                              x{n}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleDeepEngagement}
+                        disabled={isDeepEngaging || !discussionTopic || accounts.length === 0}
+                        className="flex-[1.5] bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-6 rounded-2xl font-black uppercase text-sm shadow-2xl hover:shadow-indigo-500/50 transition-all active:scale-95 flex items-center justify-center gap-3 cursor-pointer group disabled:opacity-30 disabled:grayscale"
+                      >
+                        {isDeepEngaging ? <ArrowPathIcon className="w-6 h-6 animate-spin" /> : <RocketLaunchIcon className="w-6 h-6 group-hover:animate-bounce" />}
+                        <span>{isDeepEngaging ? 'Scripting...' : 'Inject Discussion'}</span>
+                      </button>
+                    </div>
+
+                    <div className="pt-2 flex items-center gap-4">
+                      <div className="flex-1 h-px bg-white/5"></div>
+                      <p className="text-[8px] font-black text-gray-700 uppercase tracking-widest leading-none">Each unit will post {sectionsPerAccount} unique parts totalling {accounts.length * sectionsPerAccount} segments</p>
+                      <div className="flex-1 h-px bg-white/5"></div>
+                    </div>
+                  </div>
 
                   {/* Comment Subsection */}
                   <div className="mt-8 pt-8 border-t border-white/5 space-y-6">
