@@ -84,3 +84,12 @@ export const insertChatMessage = async (chatId: string, accessToken: string, mes
     throw new Error(errorData.error?.message || 'Chat failed');
   }
 };
+
+export const getRating = async (videoId: string, accessToken: string): Promise<string> => {
+  const response = await fetch(`https://www.googleapis.com/youtube/v3/videos/getRating?id=${videoId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  if (!response.ok) return 'unknown';
+  const data = await response.json();
+  return data.items?.[0]?.rating || 'none';
+};

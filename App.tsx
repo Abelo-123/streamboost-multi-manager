@@ -50,6 +50,7 @@ const App: React.FC = () => {
   const [progress, setProgress] = useState({ current: 0, total: 0, activeName: '' });
   const [chatParticipants, setChatParticipants] = useState<any[]>([]);
   const [isCommenting, setIsCommenting] = useState(false);
+  const [useAiVariations, setUseAiVariations] = useState(true);
   const [customComment, setCustomComment] = useState('');
 
   // Live Chat Polling (To show who is engaging)
@@ -211,13 +212,21 @@ const App: React.FC = () => {
         if (acc.accessToken === 'mock_token') {
           await new Promise(r => setTimeout(r, 600));
         } else {
-          // 3-Second Retention Delay: YouTube often filters likes if stay duration is 0.
-          // This simulates a brief 'view' before the like interaction.
-          await new Promise(r => setTimeout(r, 3000));
+          // PRO-METHOD: Random Jitter (4s - 9s) + Verification
+          const jitter = Math.floor(Math.random() * 5000) + 4000;
+          await new Promise(r => setTimeout(r, jitter));
+
           await youtube.rateVideo(streamInfo.videoId, acc.accessToken, 'like');
+
+          // Force a server-side sync check
+          const status = await youtube.getRating(streamInfo.videoId, acc.accessToken);
+          if (status !== 'like') {
+            console.warn(`Like verify failed for ${acc.name}, retrying once...`);
+            await youtube.rateVideo(streamInfo.videoId, acc.accessToken, 'like');
+          }
         }
         acc.lastActionStatus = 'success';
-        addLog(acc.name, 'success', `Liked stream: ${streamInfo.title}`);
+        addLog(acc.name, 'success', `Liked successfully (Verified)`);
       } catch (err: any) {
         acc.lastActionStatus = 'error';
         acc.errorMessage = err.message === 'TOKEN_EXPIRED' ? 'Authorization expired' : err.message;
@@ -236,16 +245,26 @@ const App: React.FC = () => {
   };
 
   const handleMultiComment = async (msg?: string) => {
-    const message = msg || customComment;
-    if (!streamInfo?.liveChatId || !message || accounts.length === 0) return;
+    if (!streamInfo?.liveChatId || accounts.length === 0) return;
 
     setIsCommenting(true);
-    setProgress({ current: 0, total: accounts.length, activeName: '' });
+    setProgress({ current: 0, total: accounts.length, activeName: 'Generating Variations...' });
+
+    let messageList: string[] = [];
+
+    if (useAiVariations && !msg) {
+      // Generate unique comments for each account
+      messageList = await gemini.generateUniqueComments(streamInfo.title, accounts.length);
+    } else {
+      messageList = Array(accounts.length).fill(msg || customComment);
+    }
 
     const accountsSnapshot = [...accounts];
 
     for (let i = 0; i < accountsSnapshot.length; i++) {
       const acc = { ...accountsSnapshot[i] };
+      const currentMessage = messageList[i] || messageList[0];
+
       acc.lastActionStatus = 'loading';
       setAccounts(prev => prev.map(a => a.id === acc.id ? acc : a));
       setProgress({ current: i + 1, total: accounts.length, activeName: acc.name });
@@ -254,12 +273,13 @@ const App: React.FC = () => {
         if (acc.accessToken === 'mock_token') {
           await new Promise(r => setTimeout(r, 600));
         } else {
-          // Anti-Spam Intentional Delay
-          await new Promise(r => setTimeout(r, 3000));
-          await youtube.insertChatMessage(streamInfo.liveChatId!, acc.accessToken, message);
+          // Random Chat Jitter (2s - 6s)
+          const jitter = Math.floor(Math.random() * 4000) + 2000;
+          await new Promise(r => setTimeout(r, jitter));
+          await youtube.insertChatMessage(streamInfo.liveChatId!, acc.accessToken, currentMessage);
         }
         acc.lastActionStatus = 'success';
-        addLog(acc.name, 'success', `Sent chat: ${message.substring(0, 20)}...`);
+        addLog(acc.name, 'success', `Chat: "${currentMessage.substring(0, 15)}..."`);
       } catch (err: any) {
         acc.lastActionStatus = 'error';
         acc.errorMessage = err.message;
@@ -643,19 +663,42 @@ const App: React.FC = () => {
 
                   {/* Comment Subsection */}
                   <div className="mt-8 pt-8 border-t border-white/5 space-y-6">
-                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] text-center">Chat Broadcast</h4>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Chat Broadcast</h4>
+                      <button
+                        onClick={() => setUseAiVariations(!useAiVariations)}
+                        className={`flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black transition-all ${useAiVariations ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-gray-500/10 text-gray-500 border border-white/5'}`}
+                      >
+                        <SparklesIcon className="w-3 h-3" />
+                        {useAiVariations ? 'AI VARIATIONS ON' : 'AI VARIATIONS OFF'}
+                      </button>
+                    </div>
 
                     <div className="flex flex-wrap gap-2 justify-center">
-                      {['Go live!!', 'Love this!', 'Best stream ever!', '🔥🔥🔥'].map((preset) => (
-                        <button
-                          key={preset}
-                          onClick={() => handleMultiComment(preset)}
-                          disabled={isCommenting || accounts.length === 0}
-                          className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold text-gray-400 hover:text-white transition-all cursor-pointer disabled:opacity-20"
-                        >
-                          {preset}
-                        </button>
-                      ))}
+                      <button
+                        onClick={() => handleMultiComment()}
+                        disabled={isCommenting || accounts.length === 0}
+                        className="w-full bg-white/5 hover:bg-white/10 border border-white/10 py-4 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2 text-purple-400 transition-all disabled:opacity-20 cursor-pointer mb-2"
+                      >
+                        <SparklesIcon className="w-4 h-4" />
+                        Execute Smart-Chat (Unique for each)
+                      </button>
+
+                      <div className="w-full grid grid-cols-4 gap-2">
+                        {['Great stream!', 'Love it!', 'Hello!', '🔥🔥🔥'].map((preset) => (
+                          <button
+                            key={preset}
+                            onClick={() => {
+                              setUseAiVariations(false);
+                              handleMultiComment(preset);
+                            }}
+                            disabled={isCommenting || accounts.length === 0}
+                            className="px-1 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-bold text-gray-400 hover:text-white transition-all cursor-pointer disabled:opacity-20 flex items-center justify-center"
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     <div className="relative group">
