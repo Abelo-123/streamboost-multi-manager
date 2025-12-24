@@ -117,4 +117,20 @@ export const sendPlaybackSignal = async (videoId: string, accessToken: string): 
   }
 };
 
+export const visitWatchPage = async (videoId: string, accessToken: string): Promise<void> => {
+  try {
+    // We fetch the actual watch page HTML. 
+    // This makes YouTube's servers register a 'Page View' from this account's session.
+    await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Accept': 'text/html'
+      },
+      mode: 'no-cors' // We just need the request to hit their edge
+    });
+  } catch (e) {
+    console.warn("Session visit failed, but proceeding...");
+  }
+};
+
 export const fakeHeartbeat = () => new Promise(r => setTimeout(r, Math.random() * 2000 + 1000));

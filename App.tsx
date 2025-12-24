@@ -213,11 +213,11 @@ const App: React.FC = () => {
         if (acc.accessToken === 'mock_token') {
           await new Promise(r => setTimeout(r, 600));
         } else {
-          // ULTRA-WARMUP: Wake up the session
-          await youtube.sendPlaybackSignal(streamInfo.videoId, acc.accessToken);
+          // WEBSESSION HANDSHAKE: Visit the page like a human
+          await youtube.visitWatchPage(streamInfo.videoId, acc.accessToken);
 
-          // Retention Delay (25-35s)
-          const retentionDelay = Math.floor(Math.random() * 10000) + 25000;
+          // Deep Retention Delay (40-55s)
+          const retentionDelay = Math.floor(Math.random() * 15000) + 40000;
           await new Promise(r => setTimeout(r, retentionDelay));
 
           await youtube.rateVideo(streamInfo.videoId, acc.accessToken, 'like');
@@ -341,8 +341,11 @@ const App: React.FC = () => {
         if (acc.accessToken === 'mock_token') {
           await new Promise(r => setTimeout(r, 600));
         } else {
-          // Random Chat Jitter (2s - 6s)
-          const jitter = Math.floor(Math.random() * 4000) + 2000;
+          // WEBSESSION HANDSHAKE
+          await youtube.visitWatchPage(streamInfo.videoId, acc.accessToken);
+
+          // Random Chat Jitter (5s - 10s)
+          const jitter = Math.floor(Math.random() * 5000) + 5000;
           await new Promise(r => setTimeout(r, jitter));
           await youtube.insertChatMessage(streamInfo.liveChatId!, acc.accessToken, currentMessage);
         }
@@ -589,26 +592,57 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Live Participants (Who is Viewing/Engaging) */}
+        {/* Live Participants / Viewer Deck */}
         {streamInfo && (
-          <div className="glass-panel p-6 rounded-3xl flex flex-col border border-white/5 relative z-10 animate-in fade-in zoom-in-95">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-4 text-gray-500 flex items-center gap-2">
-              <UsersIcon className="w-4 h-4 text-red-500" /> Live Participants
-            </h3>
-            <div className="space-y-3">
-              {chatParticipants.length === 0 ? (
-                <p className="text-[10px] text-gray-600 italic">Listening for chat activity...</p>
-              ) : (
-                chatParticipants.map(pic => (
-                  <div key={pic.id} className="flex items-center gap-3 animate-in slide-in-from-left-2">
-                    <img src={pic.thumbnail} className="w-6 h-6 rounded-full border border-white/10" alt="" />
-                    <span className="text-[11px] font-bold text-gray-300 truncate">{pic.name}</span>
-                    <span className="ml-auto w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                  </div>
-                ))
-              )}
+          <div className="space-y-6">
+            <div className="glass-panel p-6 rounded-3xl flex flex-col border border-white/5 relative z-10 animate-in fade-in zoom-in-95">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-4 text-gray-500 flex items-center gap-2">
+                <UsersIcon className="w-4 h-4 text-red-500" /> Active Engagement
+              </h3>
+              <div className="space-y-3">
+                {chatParticipants.length === 0 ? (
+                  <p className="text-[10px] text-gray-600 italic">Tracking chat dynamics...</p>
+                ) : (
+                  chatParticipants.map(pic => (
+                    <div key={pic.id} className="flex items-center gap-3 animate-in slide-in-from-left-2">
+                      <img src={pic.thumbnail} className="w-6 h-6 rounded-full border border-white/10" alt="" />
+                      <span className="text-[11px] font-bold text-gray-300 truncate">{pic.name}</span>
+                      <span className="ml-auto w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-            <p className="mt-4 text-[8px] text-gray-700 uppercase font-black tracking-widest text-center">Identities fetched via Live Chat</p>
+
+            {/* VIEWER DECK (Actual Playback IFrames) */}
+            {accounts.some(a => a.isWatching) && (
+              <div className="glass-panel p-6 rounded-3xl flex flex-col border border-white/5 relative z-10 animate-in fade-in slide-in-from-bottom-4 shadow-2xl shadow-blue-500/5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-500 flex items-center gap-2">
+                    <VideoCameraIcon className="w-4 h-4" /> Live Viewer Deck
+                  </h3>
+                  <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full font-black">
+                    {accounts.filter(a => a.isWatching).length} UNITS ACTIVE
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2 opacity-10 hover:opacity-100 transition-opacity">
+                  {accounts.filter(a => a.isWatching).map(acc => (
+                    <div key={acc.id} className="aspect-video bg-black rounded-lg overflow-hidden border border-white/10 relative group">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${streamInfo.videoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&autoplay=1`}
+                        className="w-full h-full pointer-events-none"
+                        title={`Viewer ${acc.name}`}
+                      />
+                      <div className="absolute inset-0 bg-blue-500/5 group-hover:hidden pointer-events-none"></div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[7px] text-gray-600 uppercase font-black mt-4 tracking-tighter text-center italic">
+                  Embedded session playback active (High Success Rate)
+                </p>
+              </div>
+            )}
           </div>
         )}
 
