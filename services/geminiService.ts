@@ -6,7 +6,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 export const analyzeStream = async (streamTitle: string, streamDescription: string) => {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: `
         Analyze this YouTube live stream and provide a concise summary (2 sentences max) 
         and 3 suggested engaging comments for the audience.
@@ -24,7 +24,7 @@ export const analyzeStream = async (streamTitle: string, streamDescription: stri
 
 export const generateEngagementStrategy = async (streamTopic: string) => {
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-1.5-flash",
     contents: `Suggest a strategy for a moderator to boost engagement in a live stream about "${streamTopic}". 
     Provide 3 bullet points.`,
   });

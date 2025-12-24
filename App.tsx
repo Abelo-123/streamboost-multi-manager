@@ -134,8 +134,15 @@ const App: React.FC = () => {
     try {
       const info = await youtube.fetchStreamInfo(videoId, process.env.YOUTUBE_API_KEY || '');
       setStreamInfo(info);
-      const analysis = await gemini.analyzeStream(info.title, info.channelTitle);
-      setAiAnalysis(analysis);
+
+      // Analyze with AI (Optional step, don't break if it fails)
+      try {
+        const analysis = await gemini.analyzeStream(info.title, info.channelTitle);
+        setAiAnalysis(analysis);
+      } catch (aiError: any) {
+        console.warn("AI Analysis failed:", aiError);
+        setAiAnalysis("AI analysis is currently unavailable (Quota limit). You can still proceed with syncing likes.");
+      }
     } catch (error: any) {
       const msg = error.message || '';
       if (msg.includes('disabled') || msg.includes('not been used')) {
@@ -316,17 +323,19 @@ const App: React.FC = () => {
 
                 {showAuthHelp && (
                   <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2">
-                    <p className="text-[10px] text-red-500 font-black uppercase flex items-center gap-1">
-                      <ExclamationTriangleIcon className="w-3 h-3" /> Troubleshooting 403
+                    <p className="text-[10px] text-red-400 font-black uppercase flex items-center gap-1">
+                      <ExclamationTriangleIcon className="w-3 h-3" /> Error Resolutions
                     </p>
-                    <p className="text-[9px] text-gray-400 leading-normal">
-                      If you get an "Access Blocked" or "API Disabled" error:
-                    </p>
-                    <ol className="text-[9px] text-gray-300 list-decimal list-inside space-y-1">
-                      <li>Enable YouTube API in Cloud Console.</li>
-                      <li>Add your email to "Test Users".</li>
-                      <li>Check the blue guide (?) for links.</li>
-                    </ol>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-[9px] text-white font-bold uppercase">401 Unauthorized:</p>
+                        <p className="text-[9px] text-gray-400">Google tokens expire every 60 minutes. Click the red <b>Refresh</b> icon next to the account to reconnect.</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] text-white font-bold uppercase">429 Too Many Requests:</p>
+                        <p className="text-[9px] text-gray-400">You've hit the Gemini AI free tier limit. The app will continue to work, but AI analysis will be skipped temporarily.</p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
