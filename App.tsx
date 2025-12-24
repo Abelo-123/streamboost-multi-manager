@@ -187,8 +187,8 @@ const App: React.FC = () => {
       }
     } catch (error: any) {
       const msg = error.message || '';
-      if (msg.includes('disabled') || msg.includes('not been used')) {
-        alert("CRITICAL ERROR: YouTube API is not enabled in your Google Cloud Project.\n\nDetails: " + msg);
+      if (msg.includes('403') || msg.includes('Forbidden') || msg.includes('disabled')) {
+        alert("CRITICAL ERROR: YouTube Data API v3 is NOT enabled.\n\nPlease go to Google Cloud Console, select your project, and enable the 'YouTube Data API v3' for your API Key.");
       } else if (msg.includes('API key not found') || msg.includes('key is invalid')) {
         alert("AUTH ERROR: Invalid or missing API Key.\n\nDetails: " + msg);
       } else {
@@ -665,35 +665,7 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* VIEWER DECK (Actual Playback IFrames) */}
-            {accounts.some(a => a.isWatching) && (
-              <div className="glass-panel p-6 rounded-3xl flex flex-col border border-white/5 relative z-10 animate-in fade-in slide-in-from-bottom-4 shadow-2xl shadow-blue-500/5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-500 flex items-center gap-2">
-                    <VideoCameraIcon className="w-4 h-4" /> Live Viewer Deck
-                  </h3>
-                  <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full font-black">
-                    {accounts.filter(a => a.isWatching).length} UNITS ACTIVE
-                  </span>
-                </div>
 
-                <div className="grid grid-cols-4 gap-2 opacity-10 hover:opacity-100 transition-opacity">
-                  {accounts.filter(a => a.isWatching).map(acc => (
-                    <div key={acc.id} className="aspect-video bg-black rounded-lg overflow-hidden border border-white/10 relative group">
-                      <iframe
-                        src={`https://www.youtube.com/embed/${streamInfo.videoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&autoplay=1`}
-                        className="w-full h-full pointer-events-none"
-                        title={`Viewer ${acc.name}`}
-                      />
-                      <div className="absolute inset-0 bg-blue-500/5 group-hover:hidden pointer-events-none"></div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[7px] text-gray-600 uppercase font-black mt-4 tracking-tighter text-center italic">
-                  Embedded session playback active (High Success Rate)
-                </p>
-              </div>
-            )}
           </div>
         )}
 
@@ -782,21 +754,6 @@ const App: React.FC = () => {
                   <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 flex-1">
                     <div className="w-10 h-10 bg-red-600/10 rounded-full flex items-center justify-center font-black text-red-500">YT</div>
                     <p className="text-sm font-bold text-gray-400">{streamInfo.channelTitle}</p>
-                  </div>
-                  <div className="flex items-center gap-6 px-6 py-4 bg-black/40 rounded-2xl border border-white/5 relative group/stats">
-                    <div className="text-center">
-                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Likes</p>
-                      <p className="text-xl font-black text-white">{Number(streamInfo.likeCount || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="w-px h-8 bg-white/10"></div>
-                    <div className="text-center">
-                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Viewers</p>
-                      <p className="text-xl font-black text-red-500">{Number(streamInfo.viewerCount || 0).toLocaleString()}</p>
-                    </div>
-                    {/* Latency Note */}
-                    <div className="absolute -bottom-6 left-0 right-0 text-center opacity-0 group-hover/stats:opacity-100 transition-opacity pointer-events-none">
-                      <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest">Note: Public stats may take 1-2 mins to sync</p>
-                    </div>
                   </div>
                 </div>
               </div>
