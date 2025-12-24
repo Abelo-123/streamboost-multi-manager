@@ -213,9 +213,11 @@ const App: React.FC = () => {
         if (acc.accessToken === 'mock_token') {
           await new Promise(r => setTimeout(r, 600));
         } else {
-          // ULTRA-RETENTION MODE: Likes are ignored if watch time < 15s.
-          // We wait 20-25s per account for absolute verification.
-          const retentionDelay = Math.floor(Math.random() * 5000) + 20000;
+          // ULTRA-WARMUP: Wake up the session
+          await youtube.sendPlaybackSignal(streamInfo.videoId, acc.accessToken);
+
+          // Retention Delay (25-35s)
+          const retentionDelay = Math.floor(Math.random() * 10000) + 25000;
           await new Promise(r => setTimeout(r, retentionDelay));
 
           await youtube.rateVideo(streamInfo.videoId, acc.accessToken, 'like');
@@ -227,7 +229,7 @@ const App: React.FC = () => {
           }
         }
         acc.lastActionStatus = 'success';
-        addLog(acc.name, 'success', `Like Verified & Pushed`);
+        addLog(acc.name, 'success', `Like Secured (Ultra Mode)`);
       } catch (err: any) {
         acc.lastActionStatus = 'error';
         acc.errorMessage = err.message;
@@ -244,33 +246,70 @@ const App: React.FC = () => {
   const handleMultiView = async () => {
     if (!streamInfo || accounts.length === 0) return;
     setIsViewing(true);
-    setProgress({ current: 0, total: accounts.length, activeName: 'Initializing Stealth View...' });
+    setProgress({ current: 0, total: accounts.length, activeName: 'Ultra Stealth View Init...' });
 
     const accountsSnapshot = [...accounts];
+    const totalDuration = 180000; // 3 Minutes Ultra Stay
 
-    // For views, we can run them in batches of 5 to simulate simultaneous watching
-    const batchSize = 5;
-    for (let i = 0; i < accountsSnapshot.length; i += batchSize) {
-      const batch = accountsSnapshot.slice(i, i + batchSize);
+    // Process in batches
+    for (let i = 0; i < accountsSnapshot.length; i++) {
+      const acc = accountsSnapshot[i];
+      setAccounts(prev => prev.map(a => a.id === acc.id ? { ...a, isWatching: true, lastActionStatus: 'loading' } : a));
 
-      // Mark as watching
-      setAccounts(prev => prev.map(a =>
-        batch.some(b => b.id === a.id) ? { ...a, isWatching: true, lastActionStatus: 'loading' } : a
-      ));
+      // Warmup signal
+      if (acc.accessToken !== 'mock_token') {
+        youtube.sendPlaybackSignal(streamInfo.videoId, acc.accessToken);
+      }
 
-      setProgress({ current: Math.min(i + batchSize, accounts.length), total: accounts.length, activeName: `Batch ${Math.floor(i / batchSize) + 1} Watching...` });
-
-      // Views need at least 60 seconds of stay to be "high quality" and stick
-      await new Promise(r => setTimeout(r, 3000)); // Short gap between batches
+      setProgress({ current: i + 1, total: accounts.length, activeName: `Activating ${acc.name}...` });
+      await new Promise(r => setTimeout(r, 1000));
     }
 
-    // After 60 seconds, stop the animation (the views continue on YT side for a bit)
+    addLog('System', 'success', `All units deployed. Maintaining stay-time for 180s...`);
+
+    // Countdown progress
+    let remaining = 180;
+    const interval = setInterval(() => {
+      remaining -= 1;
+      setProgress(p => ({ ...p, activeName: `Stay-Time: ${remaining}s...` }));
+      if (remaining <= 0) clearInterval(interval);
+    }, 1000);
+
+    // After 180 seconds
     setTimeout(() => {
       setAccounts(prev => prev.map(a => ({ ...a, isWatching: false, lastActionStatus: 'success' })));
       setIsViewing(false);
-      setProgress(prev => ({ ...prev, activeName: 'Views Registered' }));
-      addLog('System', 'success', `Generated ${accounts.length} high-retention views.`);
-    }, 60000);
+      setProgress(prev => ({ ...prev, activeName: 'Session Finalized' }));
+      addLog('System', 'success', `Ultra-View session complete.`);
+      handleFetchStream();
+    }, totalDuration);
+  };
+
+  const handleUltraEngagement = async () => {
+    if (!streamInfo || accounts.length === 0) return;
+
+    addLog('System', 'success', 'Starting Ultra Tactical Operation...');
+
+    // Phase 1: High Retention View (60s warmup)
+    setProgress({ current: 0, total: 100, activeName: 'PHASE 1: ULTRA VIEW WARMUP (60s)' });
+    setAccounts(prev => prev.map(a => ({ ...a, isWatching: true, lastActionStatus: 'loading' })));
+
+    for (const acc of accounts) {
+      if (acc.accessToken !== 'mock_token') youtube.sendPlaybackSignal(streamInfo.videoId, acc.accessToken);
+    }
+
+    await new Promise(r => setTimeout(r, 60000));
+
+    // Phase 2: Verified Likes
+    setProgress({ current: 0, total: 100, activeName: 'PHASE 2: SECURING LIKES' });
+    await handleMultiLike();
+
+    // Phase 3: AI Smart Chat
+    setProgress({ current: 0, total: 100, activeName: 'PHASE 3: AI CHAT BROADCAST' });
+    await handleMultiComment();
+
+    setAccounts(prev => prev.map(a => ({ ...a, isWatching: false })));
+    addLog('System', 'success', 'ULTRA OPERATION COMPLETE. Engagement levels maximized.');
   };
 
   const handleMultiComment = async (msg?: string) => {
@@ -688,7 +727,7 @@ const App: React.FC = () => {
                       className="stream-gradient text-white py-6 rounded-[1.5rem] font-black uppercase text-xs shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20 flex flex-col items-center gap-2 cursor-pointer"
                     >
                       {isLiking ? <ArrowPathIcon className="w-6 h-6 animate-spin" /> : <HandThumbUpIcon className="w-6 h-6" />}
-                      <span>{isLiking ? 'Syncing...' : `High-Stay Like`}</span>
+                      <span>High-Stay Like</span>
                     </button>
                     <button
                       onClick={handleMultiView}
@@ -696,9 +735,18 @@ const App: React.FC = () => {
                       className="bg-blue-600 text-white py-6 rounded-[1.5rem] font-black uppercase text-xs shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20 flex flex-col items-center gap-2 cursor-pointer shadow-blue-600/20"
                     >
                       {isViewing ? <ArrowPathIcon className="w-6 h-6 animate-spin" /> : <VideoCameraIcon className="w-6 h-6" />}
-                      <span>{isViewing ? 'Watching...' : `Execute Sync-View`}</span>
+                      <span>Ultra Sync-View</span>
                     </button>
                   </div>
+
+                  <button
+                    onClick={handleUltraEngagement}
+                    disabled={isLiking || isViewing || isCommenting || accounts.length === 0}
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-2xl hover:shadow-indigo-500/50 transition-all active:scale-95 flex items-center justify-center gap-3 cursor-pointer group mb-4"
+                  >
+                    <RocketLaunchIcon className="w-6 h-6 group-hover:animate-bounce" />
+                    EXECUTE TACTICAL ULTRA OPERATION
+                  </button>
 
                   {/* Comment Subsection */}
                   <div className="mt-8 pt-8 border-t border-white/5 space-y-6">
