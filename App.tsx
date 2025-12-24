@@ -22,7 +22,8 @@ import {
   ExclamationTriangleIcon,
   ShieldCheckIcon,
   LinkIcon,
-  RocketLaunchIcon
+  RocketLaunchIcon,
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline';
 
 const App: React.FC = () => {
@@ -47,6 +48,42 @@ const App: React.FC = () => {
   const [showSetup, setShowSetup] = useState(false);
   const [showAuthHelp, setShowAuthHelp] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, activeName: '' });
+  const [chatParticipants, setChatParticipants] = useState<any[]>([]);
+  const [isCommenting, setIsCommenting] = useState(false);
+  const [customComment, setCustomComment] = useState('');
+
+  // Live Chat Polling (To show who is engaging)
+  useEffect(() => {
+    let interval: any;
+    if (streamInfo?.liveChatId) {
+      const fetchChat = async () => {
+        try {
+          const messages = await youtube.fetchChatMessages(streamInfo.liveChatId!, process.env.YOUTUBE_API_KEY || '');
+          if (messages.length > 0) {
+            const participants = messages.map(m => ({
+              id: m.authorDetails.channelId,
+              name: m.authorDetails.displayName,
+              thumbnail: m.authorDetails.profileImageUrl
+            }));
+            setChatParticipants(prev => {
+              const combined = [...participants, ...prev];
+              const seen = new Set();
+              return combined.filter(el => {
+                const duplicate = seen.has(el.id);
+                seen.add(el.id);
+                return !duplicate;
+              }).slice(0, 10);
+            });
+          }
+        } catch (e) { console.error("Chat fetch fail"); }
+      };
+      fetchChat();
+      interval = setInterval(fetchChat, 15000); // Poll every 15s
+    } else {
+      setChatParticipants([]);
+    }
+    return () => clearInterval(interval);
+  }, [streamInfo?.liveChatId]);
 
   // Persistence
   useEffect(() => {
@@ -174,6 +211,9 @@ const App: React.FC = () => {
         if (acc.accessToken === 'mock_token') {
           await new Promise(r => setTimeout(r, 600));
         } else {
+          // 3-Second Retention Delay: YouTube often filters likes if stay duration is 0.
+          // This simulates a brief 'view' before the like interaction.
+          await new Promise(r => setTimeout(r, 3000));
           await youtube.rateVideo(streamInfo.videoId, acc.accessToken, 'like');
         }
         acc.lastActionStatus = 'success';
@@ -193,6 +233,44 @@ const App: React.FC = () => {
     setTimeout(() => {
       handleFetchStream();
     }, 2000);
+  };
+
+  const handleMultiComment = async (msg?: string) => {
+    const message = msg || customComment;
+    if (!streamInfo?.liveChatId || !message || accounts.length === 0) return;
+
+    setIsCommenting(true);
+    setProgress({ current: 0, total: accounts.length, activeName: '' });
+
+    const accountsSnapshot = [...accounts];
+
+    for (let i = 0; i < accountsSnapshot.length; i++) {
+      const acc = { ...accountsSnapshot[i] };
+      acc.lastActionStatus = 'loading';
+      setAccounts(prev => prev.map(a => a.id === acc.id ? acc : a));
+      setProgress({ current: i + 1, total: accounts.length, activeName: acc.name });
+
+      try {
+        if (acc.accessToken === 'mock_token') {
+          await new Promise(r => setTimeout(r, 600));
+        } else {
+          // Anti-Spam Intentional Delay
+          await new Promise(r => setTimeout(r, 3000));
+          await youtube.insertChatMessage(streamInfo.liveChatId!, acc.accessToken, message);
+        }
+        acc.lastActionStatus = 'success';
+        addLog(acc.name, 'success', `Sent chat: ${message.substring(0, 20)}...`);
+      } catch (err: any) {
+        acc.lastActionStatus = 'error';
+        acc.errorMessage = err.message;
+        addLog(acc.name, 'error', `Chat Failed: ${err.message}`);
+      }
+
+      setAccounts(prev => prev.map(a => a.id === acc.id ? acc : a));
+    }
+    setIsCommenting(false);
+    setCustomComment('');
+    setProgress(prev => ({ ...prev, activeName: 'Broadcast Complete' }));
   };
 
   const stats = useMemo(() => {
@@ -421,6 +499,29 @@ const App: React.FC = () => {
           </div>
         </div>
 
+        {/* Live Participants (Who is Viewing/Engaging) */}
+        {streamInfo && (
+          <div className="glass-panel p-6 rounded-3xl flex flex-col border border-white/5 relative z-10 animate-in fade-in zoom-in-95">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-4 text-gray-500 flex items-center gap-2">
+              <UsersIcon className="w-4 h-4 text-red-500" /> Live Participants
+            </h3>
+            <div className="space-y-3">
+              {chatParticipants.length === 0 ? (
+                <p className="text-[10px] text-gray-600 italic">Listening for chat activity...</p>
+              ) : (
+                chatParticipants.map(pic => (
+                  <div key={pic.id} className="flex items-center gap-3 animate-in slide-in-from-left-2">
+                    <img src={pic.thumbnail} className="w-6 h-6 rounded-full border border-white/10" alt="" />
+                    <span className="text-[11px] font-bold text-gray-300 truncate">{pic.name}</span>
+                    <span className="ml-auto w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                  </div>
+                ))
+              )}
+            </div>
+            <p className="mt-4 text-[8px] text-gray-700 uppercase font-black tracking-widest text-center">Identities fetched via Live Chat</p>
+          </div>
+        )}
+
         {/* Activity Feed */}
         <div className="glass-panel p-6 rounded-3xl flex-1 max-h-[350px] flex flex-col border border-white/5 relative z-10">
           <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-4 text-gray-500 flex items-center gap-2">
@@ -540,32 +641,61 @@ const App: React.FC = () => {
                     </div>
                   </button>
 
-                  {isLiking && (
-                    <div className="mt-8 space-y-3 animate-in fade-in slide-in-from-top-2">
-                      <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-gray-400">
-                        <span className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
-                          {progress.activeName}
-                        </span>
-                        <span>{progress.current}/{progress.total}</span>
-                      </div>
-                      <div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5 p-0.5">
-                        <div
-                          className="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]"
-                          style={{ width: `${(progress.current / progress.total) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
+                  {/* Comment Subsection */}
+                  <div className="mt-8 pt-8 border-t border-white/5 space-y-6">
+                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] text-center">Chat Broadcast</h4>
 
-                  {!isLiking && accounts.length === 0 && (
-                    <div className="mt-8 p-5 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex gap-4 items-start">
-                      <InformationCircleIcon className="w-6 h-6 text-yellow-500 shrink-0" />
-                      <p className="text-[10px] text-yellow-500/80 leading-relaxed font-bold">
-                        Awaiting fleet deployment. Click the (+) button to connect accounts.
-                      </p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {['Go live!!', 'Love this!', 'Best stream ever!', '🔥🔥🔥'].map((preset) => (
+                        <button
+                          key={preset}
+                          onClick={() => handleMultiComment(preset)}
+                          disabled={isCommenting || accounts.length === 0}
+                          className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold text-gray-400 hover:text-white transition-all cursor-pointer disabled:opacity-20"
+                        >
+                          {preset}
+                        </button>
+                      ))}
                     </div>
-                  )}
+
+                    <div className="relative group">
+                      <input
+                        type="text"
+                        placeholder="Broadcast custom message..."
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-gray-700 text-white"
+                        value={customComment}
+                        onChange={(e) => setCustomComment(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleMultiComment()}
+                      />
+                      <button
+                        onClick={() => handleMultiComment()}
+                        disabled={isCommenting || !customComment || accounts.length === 0}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-blue-500 hover:text-blue-400 disabled:opacity-20 disabled:grayscale transition-all cursor-pointer"
+                      >
+                        <ChatBubbleLeftRightIcon className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {isCommenting && (
+                      <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-blue-400">
+                          <span>Broadcasting to Chat...</span>
+                          <span>{progress.current}/{progress.total}</span>
+                        </div>
+                        <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-blue-500 transition-all duration-500"
+                            style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {/* Spam Warning */}
+                    <div className="pt-2 flex items-center gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+                      <ExclamationCircleIcon className="w-3 h-3 text-yellow-500" />
+                      <p className="text-[7px] text-gray-500 font-bold uppercase tracking-tight">Warning: Excessive chat usage may trigger YouTube anti-spam filters.</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

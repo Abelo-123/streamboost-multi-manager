@@ -29,8 +29,16 @@ export const fetchStreamInfo = async (videoId: string, apiKey: string): Promise<
     thumbnail: item.snippet.thumbnails.maxres?.url || item.snippet.thumbnails.high.url,
     isLive: !!item.liveStreamingDetails,
     likeCount: item.statistics?.likeCount,
-    viewerCount: item.liveStreamingDetails?.concurrentViewers || item.statistics?.viewCount
+    viewerCount: item.liveStreamingDetails?.concurrentViewers || item.statistics?.viewCount,
+    liveChatId: item.liveStreamingDetails?.activeLiveChatId
   };
+};
+
+export const fetchChatMessages = async (chatId: string, apiKey: string): Promise<any[]> => {
+  const response = await fetch(`https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${chatId}&part=snippet,authorDetails&key=${apiKey}`);
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.items || [];
 };
 
 export const rateVideo = async (videoId: string, accessToken: string, rating: 'like' | 'dislike' | 'none'): Promise<void> => {
@@ -50,5 +58,29 @@ export const rateVideo = async (videoId: string, accessToken: string, rating: 'l
     if (status === 403) throw new Error('PERMISSION_DENIED: ' + (errorData.error?.message || 'Check scopes'));
 
     throw new Error(errorData.error?.message || `Error ${status}`);
+  }
+};
+
+export const insertChatMessage = async (chatId: string, accessToken: string, message: string): Promise<void> => {
+  const response = await fetch(`https://www.googleapis.com/youtube/v3/liveChat/messages?part=snippet`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      snippet: {
+        liveChatId: chatId,
+        type: 'textMessageEvent',
+        textMessageDetails: {
+          messageText: message
+        }
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error?.message || 'Chat failed');
   }
 };

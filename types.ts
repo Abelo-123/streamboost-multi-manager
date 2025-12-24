@@ -17,6 +17,15 @@ export interface StreamInfo {
   isLive: boolean;
   likeCount?: string;
   viewerCount?: string;
+  liveChatId?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  authorName: string;
+  authorThumb: string;
+  message: string;
+  timestamp: Date;
 }
 
 export interface ActionLog {
