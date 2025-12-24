@@ -188,6 +188,11 @@ const App: React.FC = () => {
     }
     setIsLiking(false);
     setProgress(prev => ({ ...prev, activeName: 'Operation Complete' }));
+
+    // Refresh stats after liking to see the increase
+    setTimeout(() => {
+      handleFetchStream();
+    }, 2000);
   };
 
   const stats = useMemo(() => {
@@ -497,9 +502,26 @@ const App: React.FC = () => {
                     <h3 className="text-2xl font-black leading-tight drop-shadow-lg text-white">{streamInfo.title}</h3>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
-                  <div className="w-10 h-10 bg-red-600/10 rounded-full flex items-center justify-center font-black text-red-500">YT</div>
-                  <p className="text-sm font-bold text-gray-400">{streamInfo.channelTitle}</p>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 flex-1">
+                    <div className="w-10 h-10 bg-red-600/10 rounded-full flex items-center justify-center font-black text-red-500">YT</div>
+                    <p className="text-sm font-bold text-gray-400">{streamInfo.channelTitle}</p>
+                  </div>
+                  <div className="flex items-center gap-6 px-6 py-4 bg-black/40 rounded-2xl border border-white/5 relative group/stats">
+                    <div className="text-center">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Likes</p>
+                      <p className="text-xl font-black text-white">{Number(streamInfo.likeCount || 0).toLocaleString()}</p>
+                    </div>
+                    <div className="w-px h-8 bg-white/10"></div>
+                    <div className="text-center">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Viewers</p>
+                      <p className="text-xl font-black text-red-500">{Number(streamInfo.viewerCount || 0).toLocaleString()}</p>
+                    </div>
+                    {/* Latency Note */}
+                    <div className="absolute -bottom-6 left-0 right-0 text-center opacity-0 group-hover/stats:opacity-100 transition-opacity pointer-events-none">
+                      <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest">Note: Public stats may take 1-2 mins to sync</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 

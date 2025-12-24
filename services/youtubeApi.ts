@@ -8,7 +8,7 @@ export const extractVideoId = (url: string): string | null => {
 };
 
 export const fetchStreamInfo = async (videoId: string, apiKey: string): Promise<StreamInfo> => {
-  const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${apiKey}`);
+  const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails,statistics&id=${videoId}&key=${apiKey}`);
 
   if (!response.ok) {
     const errorData = await response.json();
@@ -27,7 +27,9 @@ export const fetchStreamInfo = async (videoId: string, apiKey: string): Promise<
     title: item.snippet.title,
     channelTitle: item.snippet.channelTitle,
     thumbnail: item.snippet.thumbnails.maxres?.url || item.snippet.thumbnails.high.url,
-    isLive: !!item.liveStreamingDetails
+    isLive: !!item.liveStreamingDetails,
+    likeCount: item.statistics?.likeCount,
+    viewerCount: item.liveStreamingDetails?.concurrentViewers || item.statistics?.viewCount
   };
 };
 

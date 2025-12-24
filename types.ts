@@ -15,6 +15,8 @@ export interface StreamInfo {
   channelTitle: string;
   thumbnail: string;
   isLive: boolean;
+  likeCount?: string;
+  viewerCount?: string;
 }
 
 export interface ActionLog {
