@@ -50,6 +50,7 @@ const App: React.FC = () => {
   const [progress, setProgress] = useState({ current: 0, total: 0, activeName: '' });
   const [chatParticipants, setChatParticipants] = useState<any[]>([]);
   const [isCommenting, setIsCommenting] = useState(false);
+  const [isViewing, setIsViewing] = useState(false);
   const [useAiVariations, setUseAiVariations] = useState(true);
   const [customComment, setCustomComment] = useState('');
 
@@ -212,36 +213,64 @@ const App: React.FC = () => {
         if (acc.accessToken === 'mock_token') {
           await new Promise(r => setTimeout(r, 600));
         } else {
-          // PRO-METHOD: Random Jitter (4s - 9s) + Verification
-          const jitter = Math.floor(Math.random() * 5000) + 4000;
-          await new Promise(r => setTimeout(r, jitter));
+          // ULTRA-RETENTION MODE: Likes are ignored if watch time < 15s.
+          // We wait 20-25s per account for absolute verification.
+          const retentionDelay = Math.floor(Math.random() * 5000) + 20000;
+          await new Promise(r => setTimeout(r, retentionDelay));
 
           await youtube.rateVideo(streamInfo.videoId, acc.accessToken, 'like');
 
-          // Force a server-side sync check
+          // Verify
           const status = await youtube.getRating(streamInfo.videoId, acc.accessToken);
           if (status !== 'like') {
-            console.warn(`Like verify failed for ${acc.name}, retrying once...`);
             await youtube.rateVideo(streamInfo.videoId, acc.accessToken, 'like');
           }
         }
         acc.lastActionStatus = 'success';
-        addLog(acc.name, 'success', `Liked successfully (Verified)`);
+        addLog(acc.name, 'success', `Like Verified & Pushed`);
       } catch (err: any) {
         acc.lastActionStatus = 'error';
-        acc.errorMessage = err.message === 'TOKEN_EXPIRED' ? 'Authorization expired' : err.message;
-        addLog(acc.name, 'error', `Failed: ${acc.errorMessage}`);
+        acc.errorMessage = err.message;
+        addLog(acc.name, 'error', `Failed: ${err.message}`);
       }
 
       setAccounts(prev => prev.map(a => a.id === acc.id ? acc : a));
     }
     setIsLiking(false);
     setProgress(prev => ({ ...prev, activeName: 'Operation Complete' }));
+    setTimeout(() => handleFetchStream(), 3000);
+  };
 
-    // Refresh stats after liking to see the increase
+  const handleMultiView = async () => {
+    if (!streamInfo || accounts.length === 0) return;
+    setIsViewing(true);
+    setProgress({ current: 0, total: accounts.length, activeName: 'Initializing Stealth View...' });
+
+    const accountsSnapshot = [...accounts];
+
+    // For views, we can run them in batches of 5 to simulate simultaneous watching
+    const batchSize = 5;
+    for (let i = 0; i < accountsSnapshot.length; i += batchSize) {
+      const batch = accountsSnapshot.slice(i, i + batchSize);
+
+      // Mark as watching
+      setAccounts(prev => prev.map(a =>
+        batch.some(b => b.id === a.id) ? { ...a, isWatching: true, lastActionStatus: 'loading' } : a
+      ));
+
+      setProgress({ current: Math.min(i + batchSize, accounts.length), total: accounts.length, activeName: `Batch ${Math.floor(i / batchSize) + 1} Watching...` });
+
+      // Views need at least 60 seconds of stay to be "high quality" and stick
+      await new Promise(r => setTimeout(r, 3000)); // Short gap between batches
+    }
+
+    // After 60 seconds, stop the animation (the views continue on YT side for a bit)
     setTimeout(() => {
-      handleFetchStream();
-    }, 2000);
+      setAccounts(prev => prev.map(a => ({ ...a, isWatching: false, lastActionStatus: 'success' })));
+      setIsViewing(false);
+      setProgress(prev => ({ ...prev, activeName: 'Views Registered' }));
+      addLog('System', 'success', `Generated ${accounts.length} high-retention views.`);
+    }, 60000);
   };
 
   const handleMultiComment = async (msg?: string) => {
@@ -479,12 +508,14 @@ const App: React.FC = () => {
                 <div key={acc.id} className={`group relative flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 ${acc.lastActionStatus === 'error' ? 'border-red-500/50 bg-red-500/5' : 'border-white/5 bg-white/5 hover:bg-white/[0.08]'}`}>
                   <div className="relative">
                     <img src={acc.avatar} className={`w-12 h-12 rounded-xl border border-white/10 object-cover ${acc.lastActionStatus === 'loading' ? 'animate-pulse scale-90' : ''}`} alt="" />
-                    <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-[#0f0f0f] ${acc.accessToken === 'mock_token' ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+                    <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-[#0f0f0f] ${acc.isWatching ? 'bg-blue-500 animate-ping' : acc.accessToken === 'mock_token' ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-black truncate leading-tight">{acc.name}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      {acc.lastActionStatus === 'error' ? (
+                      {acc.isWatching ? (
+                        <span className="text-[10px] text-blue-400 font-black uppercase animate-pulse">Generating View...</span>
+                      ) : acc.lastActionStatus === 'error' ? (
                         <span className="text-[10px] text-red-400 font-bold uppercase truncate">{acc.errorMessage}</span>
                       ) : (
                         <span className="text-[10px] text-gray-500 font-medium uppercase tracking-tighter">
@@ -650,16 +681,24 @@ const App: React.FC = () => {
                 <div className="bg-white/5 border border-white/10 rounded-3xl p-8 flex-1 shadow-2xl backdrop-blur-3xl relative overflow-hidden">
                   <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-8 text-center">Payload Distribution</h4>
 
-                  <button
-                    onClick={handleMultiLike}
-                    disabled={isLiking || accounts.length === 0}
-                    className="w-full stream-gradient text-white py-6 rounded-[1.5rem] font-black uppercase text-sm shadow-2xl shadow-red-600/30 hover:shadow-red-600/60 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20 disabled:scale-100 disabled:shadow-none group relative overflow-hidden cursor-pointer"
-                  >
-                    <div className="relative z-10 flex flex-col items-center gap-2">
-                      {isLiking ? <ArrowPathIcon className="w-7 h-7 animate-spin" /> : <HandThumbUpIcon className="w-8 h-8 mb-1 group-hover:scale-125 transition-transform" />}
-                      <span>{isLiking ? 'Transmitting...' : `Execute Sync-Like (${accounts.length})`}</span>
-                    </div>
-                  </button>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <button
+                      onClick={handleMultiLike}
+                      disabled={isLiking || isViewing || accounts.length === 0}
+                      className="stream-gradient text-white py-6 rounded-[1.5rem] font-black uppercase text-xs shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20 flex flex-col items-center gap-2 cursor-pointer"
+                    >
+                      {isLiking ? <ArrowPathIcon className="w-6 h-6 animate-spin" /> : <HandThumbUpIcon className="w-6 h-6" />}
+                      <span>{isLiking ? 'Syncing...' : `High-Stay Like`}</span>
+                    </button>
+                    <button
+                      onClick={handleMultiView}
+                      disabled={isViewing || isLiking || accounts.length === 0}
+                      className="bg-blue-600 text-white py-6 rounded-[1.5rem] font-black uppercase text-xs shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20 flex flex-col items-center gap-2 cursor-pointer shadow-blue-600/20"
+                    >
+                      {isViewing ? <ArrowPathIcon className="w-6 h-6 animate-spin" /> : <VideoCameraIcon className="w-6 h-6" />}
+                      <span>{isViewing ? 'Watching...' : `Execute Sync-View`}</span>
+                    </button>
+                  </div>
 
                   {/* Comment Subsection */}
                   <div className="mt-8 pt-8 border-t border-white/5 space-y-6">

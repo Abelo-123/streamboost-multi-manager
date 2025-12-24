@@ -7,6 +7,7 @@ export interface GoogleAccount {
   accessToken: string;
   lastActionStatus?: 'idle' | 'success' | 'error' | 'loading';
   errorMessage?: string;
+  isWatching?: boolean;
 }
 
 export interface StreamInfo {
